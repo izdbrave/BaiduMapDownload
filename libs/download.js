@@ -64,8 +64,10 @@ function download(urlList) {
                 aria2.batch(batchArr[curIndex + 1]).then(msg => {});
             }
             if (batch.length - downCount == 0) {
-                aria2.close().then(() => console.info(`下载完成，共下载瓦片${batch.length}张，用时${calcTime(beginTime)}`));
-                resolve();
+                aria2.close().then(() => {
+                    console.info(`下载完成，共下载瓦片${batch.length}张，用时${calcTime(beginTime)}`);
+                    resolve();
+                });
             }
         });
 

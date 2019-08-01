@@ -14,7 +14,8 @@ function getConfig() {
         y1: config.leftTop[1],
         x2: config.rightBottom[0],
         y2: config.rightBottom[1],
-        level: config.level,
+        minLevel: config.minLevel,
+        maxLevel: config.maxLevel,
         style: config.style
     };
 }
@@ -25,7 +26,7 @@ function getTileList() {
     let config = getConfig();
     let tileList = [];
     let all = [];
-    for (i = 3; i <= config.level; i++) {
+    for (i = config.minLevel; i <= config.maxLevel; i++) {
         all[i] = {};
         p1 = TileLnglatTransformBaidu.lnglatToTile(config.x1, config.y1, i);
         p2 = TileLnglatTransformBaidu.lnglatToTile(config.x2, config.y2, i);
@@ -33,7 +34,7 @@ function getTileList() {
         all[i].x = [p1.tileX, p2.tileX];
         all[i].y = [p2.tileY, p1.tileY];
     }
-    for (let z = 3; z <= all.length - 1; z++) {
+    for (let z = config.minLevel; z <= all.length - 1; z++) {
         for (let x = all[z].x[0]; x <= all[z].x[1]; x++) {
             for (let y = all[z].y[0]; y <= all[z].y[1]; y++) {
                 let url = `http://online0.map.bdimg.com/tile/?qt=tile&x=${x}&y=${y}&z=${z}&styles=${config.style}&scaler=1&udt=20180711`;

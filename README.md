@@ -5,7 +5,9 @@
 
 2.修改配置文件config.json。
 
-> ​	level：瓦片级别
+> ​	minLevel：瓦片最小级别
+>
+> ​	maxLevel：瓦片最大级别
 >
 > ​	leftTop：地图左上角经纬度
 >
@@ -17,12 +19,14 @@
 
 ```json
 {
-    "level": 14,
+    "minLevel": 1,
+    "maxLevel": 13,
     "leftTop": [115.922777, 37.475752],
     "rightBottom": [118.673173, 35.717931],
     "style": "pl",
-    "path": "D:/Web/bdtiles"
+    "path": "G:/bdtiles"
 }
+
 ```
 
 3.`node main` 或者执行start.bat开始下载。
