@@ -1,8 +1,8 @@
 {
     "minLevel": 1,
-    "maxLevel": 13,
-    "leftTop": [115.922777, 37.475752],
-    "rightBottom": [118.673173, 35.717931],
+    "maxLevel": 11,
+    "leftTop": [73.532896, 53.569074],
+    "rightBottom": [135.102925, 3.747512],
     "style": "pl",
-    "path": "G:/bdtiles"
+    "path": "E:\bdtiles"
 }

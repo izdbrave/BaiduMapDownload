@@ -28,8 +28,8 @@ function getTileList() {
     let all = [];
     for (i = config.minLevel; i <= config.maxLevel; i++) {
         all[i] = {};
-        p1 = TileLnglatTransformBaidu.lnglatToTile(config.x1, config.y1, i);
-        p2 = TileLnglatTransformBaidu.lnglatToTile(config.x2, config.y2, i);
+        let p1 = TileLnglatTransformBaidu.lnglatToTile(config.x1, config.y1, i);
+        let p2 = TileLnglatTransformBaidu.lnglatToTile(config.x2, config.y2, i);
         all[i].t = i;
         all[i].x = [p1.tileX, p2.tileX];
         all[i].y = [p2.tileY, p1.tileY];
