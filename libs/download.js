@@ -2,7 +2,7 @@
  * @ Author: izdbrave
  * @ Create Time: 2019-08-01 09:12:21
  * @ Modified by: izdbrave
- * @ Modified time: 2019-09-03 18:14:32
+ * @ Modified time: 2019-09-03 18:39:05
  * @ Description: 下载瓦片
  */
 
@@ -88,8 +88,18 @@ function download(urlList) {
             aria2.batch(batchArr[curIndex + 1]).then(msg => {});
         }
         let splitTime = 1;
+        let speedArr = [];
+        let count = 0;
+        let speedTime = 30;
         setInterval(() => {
-            let speed = Math.round(downCount / ((new Date() - beginTime) / 1000));
+            speedArr[count % speedTime] = downCount;
+            count++;
+            let speed = 0;
+            if (count < speedTime) {
+                speed = Math.round((downCount - speedArr[0]) / count);
+            } else {
+                speed = Math.round((downCount - speedArr[count % speedTime]) / speedTime);
+            }
             if (speed > 0) {
                 console.info(`下载速度：${speed} 张/秒，已完成${Math.floor((downCount / batch.length) * 10000) / 100}%，预计还需 ${calcTime(((batch.length - downCount) / speed) * 1000)}`);
             } else {
