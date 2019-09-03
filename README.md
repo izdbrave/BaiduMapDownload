@@ -1,32 +1,30 @@
 # BaiduMapDownload
-##### Nodejs百度地图瓦片下载器，nodejs调用下载神器aria2下载百度地图瓦片，可在文件./tools/aria2.conf中修改具体的下载参数，实现最快速下载。
+
+##### Nodejs 百度地图瓦片下载器，nodejs 调用下载神器 aria2 下载百度地图瓦片，可在文件./tools/aria2.conf 中修改具体的下载参数，实现最快速下载。
 
 1.执行命令 `npm i` 安装依赖。
 
-2.修改配置文件config.json。
+2.修改配置文件 config.ini。
 
-> ​	minLevel：瓦片最小级别
+> path：瓦片保存路径
 >
-> ​	maxLevel：瓦片最大级别
+> minLevel：瓦片最小级别
 >
-> ​	leftTop：地图左上角经纬度
+> maxLevel：瓦片最大级别
 >
-> ​	rightBottom：地图右下角经纬度
+> leftTop：地图左上角经纬度
 >
-> ​	style：地图风格
+> rightBottom：地图右下角经纬度
 >
-> ​	path：瓦片保存路径
+> style：地图风格，可选值有常规地图样式(normal)、清新蓝风格(light)、黑夜风格(dark)、自然绿风格(grassgreen)、午夜蓝风格(midnight)、浪漫粉风格(pink)、清新蓝绿风格(bluish)、高端灰风格(grayscale)
 
-```json
-{
-    "minLevel": 1,
-    "maxLevel": 13,
-    "leftTop": [115.922777, 37.475752],
-    "rightBottom": [118.673173, 35.717931],
-    "style": "pl",
-    "path": "G:/bdtiles"
-}
-
+```ini
+path = ./tiles
+minLevel = 1
+maxLevel = 17
+leftTop = 116.22952831687087,37.54514680399567
+rightBottom = 117.9797464385945,35.99644032407451
+style = normal
 ```
 
-3.`node main` 或者执行start.bat开始下载。
+3.`node main` 或者执行 start.bat 开始下载。

@@ -2,8 +2,8 @@
  * @ Author: izdbrave
  * @ Create Time: 2019-07-31 16:29:07
  * @ Modified by: izdbrave
- * @ Modified time: 2019-08-01 10:13:31
- * @ Description:百度地图下载
+ * @ Modified time: 2019-09-03 13:40:48
+ * @ Description:百度地图瓦片下载
  */
 
 const getTileList = require('./libs/getTileList');

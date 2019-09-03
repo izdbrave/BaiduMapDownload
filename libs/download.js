@@ -1,8 +1,16 @@
-const fs = require('fs');
+/**
+ * @ Author: izdbrave
+ * @ Create Time: 2019-08-01 09:12:21
+ * @ Modified by: izdbrave
+ * @ Modified time: 2019-09-03 14:04:23
+ * @ Description: 下载瓦片
+ */
+
 const underscore = require('underscore');
 const path = require('path');
 const Aria2 = require('aria2');
 const url = require('url');
+const getConfig = require('./getConfig');
 
 const aria2 = new Aria2({
     host: 'localhost',
@@ -17,11 +25,6 @@ aria2
     .then()
     .catch(err => console.error('error', err));
 
-let config = fs
-    .readFileSync(path.join(__dirname, '../config.json'))
-    .toString()
-    .replace(/\\+/g, '\\\\');
-config = JSON.parse(config);
 /**
  * 计算时间
  */
@@ -45,6 +48,7 @@ function calcTime(milliseconds) {
  * 下载瓦片
  */
 function download(urlList) {
+    let config = getConfig();
     return new Promise((resolve, reject) => {
         console.info(`开始下载，共有瓦片${urlList.length}张`);
         let batch = urlList.map((src, index) => {
@@ -87,7 +91,7 @@ function download(urlList) {
         setInterval(() => {
             let speed = (downCount - preDownCount) / splitTime;
             if (speed > 0) {
-                console.info(`下载速度：${speed} 张/秒，预计还需 ${calcTime(((batch.length - downCount) / speed) * 1000)}`);
+                console.info(`下载速度：${speed} 张/秒，已完成${Math.floor((downCount / batch.length) * 10000) / 100}%，预计还需 ${calcTime(((batch.length - downCount) / speed) * 1000)}`);
             } else {
                 // console.info(`下载速度：${speed}张/秒`);
             }
