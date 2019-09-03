@@ -2,7 +2,7 @@
  * @ Author: izdbrave
  * @ Create Time: 2019-08-01 09:12:21
  * @ Modified by: izdbrave
- * @ Modified time: 2019-09-03 14:04:23
+ * @ Modified time: 2019-09-03 18:04:04
  * @ Description: 下载瓦片
  */
 
@@ -57,7 +57,7 @@ function download(urlList) {
             let out = queryParam.y + '.png';
             return ['addUri', [src], { dir, out }];
         });
-        let sameCount = 1000;
+        let sameCount = 2000;
         var batchArr = underscore.chunk(batch, sameCount);
         let downCount = 0;
         let preDownCount = 0;
