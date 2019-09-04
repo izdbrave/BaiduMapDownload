@@ -2,7 +2,7 @@
  * @ Author: izdbrave
  * @ Create Time: 2019-08-01 09:12:21
  * @ Modified by: izdbrave
- * @ Modified time: 2019-09-03 18:39:05
+ * @ Modified time: 2019-09-04 12:07:18
  * @ Description: 下载瓦片
  */
 
@@ -34,15 +34,7 @@ function calcTime(milliseconds) {
         .padStart(2, '0');
     let minutes = (parseInt(milliseconds / 1000 / 60) % 60).toString().padStart(2, '0');
     let seconds = (parseInt(milliseconds / 1000) % 60).toString().padStart(2, '0');
-    let time = '';
-    if (Number(hours)) {
-        time += `${hours}:`;
-    }
-    if (Number(hours) || Number(minutes)) {
-        time += `${minutes}:`;
-    }
-    time += `${seconds}`;
-    return time;
+    return `${hours}:${minutes}:${seconds}`;
 }
 /**
  * 下载瓦片
@@ -60,10 +52,9 @@ function download(urlList) {
         let sameCount = 2000;
         var batchArr = underscore.chunk(batch, sameCount);
         let downCount = 0;
-        let preDownCount = 0;
         let curIndex = 0;
+        let errorCount = 0;
         let beginTime = new Date();
-
         aria2.on('onDownloadComplete', params => {
             downCount++;
             var downloadIndex = Math.floor(downCount / sameCount);
@@ -71,16 +62,21 @@ function download(urlList) {
                 curIndex = downloadIndex;
                 aria2.batch(batchArr[curIndex + 1]).then(msg => {});
             }
-            if (batch.length - downCount == 0) {
+            if (batch.length - errorCount - downCount == 0) {
                 aria2.close().then(() => {
                     let endTime = new Date();
-                    console.info(`下载完成，共下载瓦片 ${batch.length} 张，用时 ${calcTime(endTime - beginTime)}`);
+                    if (errorCount > 0) {
+                        console.info(`下载完成，共下载瓦片 ${batch.length - errorCount} 张,失败${errorCount} 张，用时 ${calcTime(endTime - beginTime)}`);
+                    } else {
+                        console.info(`下载完成，共下载瓦片 ${batch.length} 张，用时 ${calcTime(endTime - beginTime)}`);
+                    }
                     resolve();
                 });
             }
         });
 
         aria2.on('onDownloadError', params => {
+            errorCount++;
             console.error('DownloadError', params);
         });
         aria2.batch(batchArr[curIndex]).then(msg => {});
@@ -90,6 +86,7 @@ function download(urlList) {
         let splitTime = 1;
         let speedArr = [];
         let count = 0;
+        let preDownCount = 0;
         let speedTime = 30;
         setInterval(() => {
             speedArr[count % speedTime] = downCount;
@@ -101,7 +98,11 @@ function download(urlList) {
                 speed = Math.round((downCount - speedArr[count % speedTime]) / speedTime);
             }
             if (speed > 0) {
-                console.info(`下载速度：${speed} 张/秒，已完成${Math.floor((downCount / batch.length) * 10000) / 100}%，预计还需 ${calcTime(((batch.length - downCount) / speed) * 1000)}`);
+                console.info(
+                    `下载速度：${speed} 张/秒，已完成${Math.floor((downCount / (batch.length - errorCount)) * 10000) / 100}%，预计还需 ${calcTime(
+                        ((batch.length - errorCount - downCount) / speed) * 1000
+                    )}`
+                );
             } else {
                 // console.info(`下载速度：${speed}张/秒`);
             }
