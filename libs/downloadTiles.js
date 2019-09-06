@@ -2,7 +2,7 @@
  * @ Author: izdbrave
  * @ Create Time: 2019-08-01 09:12:21
  * @ Modified by: izdbrave
- * @ Modified time: 2019-09-06 19:44:42
+ * @ Modified time: 2019-09-06 19:48:25
  * @ Description: 下载瓦片
  */
 
@@ -77,24 +77,6 @@ function downloadTask(src, callback) {
             downloadTask(src, callback);
         }
     });
-
-    // request({ url: src, timeout: 60000 })
-    //     .on('error', function(err) {
-    //         errorCount++;
-    //         fs.writeFileSync(errLogPath, src + '\r\n', { flag: 'a' }, function(err) {});
-    //         stream.destroy();
-    //     })
-    //     .pipe(stream)
-    //     .on('error', () => {
-    //         errorCount++;
-    //         fs.writeFileSync(errLogPath, src + '\r\n', { flag: 'a' }, function(err) {});
-    //     })
-    //     .on('finish', () => {
-    //         downCount++;
-    //     })
-    //     .on('close', function(data) {
-    //         callback();
-    //     });
 }
 /**
  * 下载回调方法
@@ -135,17 +117,13 @@ function showProgressInfo() {
  * 下载瓦片
  */
 function downloadTiles(urlList) {
-    // urlList[0] = 'http://www.aaaabbii.com/tile?x=10&y=10&z=10';
-    // urlList[10] = 'http://www.aaaabbii10.com/tile?x=10&y=10&z=10';
-    // urlList.length = 1;
-    // console.log(urlList);
     if (fs.existsSync(errLogPath)) {
         fs.unlinkSync(errLogPath);
     }
     return new Promise((resolve, reject) => {
         totalCount = urlList.length;
         beginTime = new Date();
-        console.info(`开始下载，共有瓦片 ${totalCount.toString().yellow} 张`.green);
+        console.info(`开始下载，共有瓦片 ${totalCount.toString().yellow} 张`);
         let bagpipe = new Bagpipe(config.threads, {});
 
         urlList.forEach(src => {
