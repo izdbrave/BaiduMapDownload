@@ -2,7 +2,7 @@
  * @ Author: izdbrave
  * @ Create Time: 2019-09-03 11:42:57
  * @ Modified by: izdbrave
- * @ Modified time: 2019-09-03 13:43:12
+ * @ Modified time: 2019-09-06 18:10:15
  * @ Description: 读取配置文件
  */
 
@@ -27,6 +27,9 @@ function getConfig() {
     config.rightBottom.forEach(c => {
         c = Number(c);
     });
+    config.minLevel = Math.max(Number(config.minLevel), 3);
+    config.maxLevel = Math.min(Number(config.maxLevel), 19);
+    config.threads = Math.max(Number(config.threads), 1);
     return {
         x1: config.leftTop[0],
         y1: config.leftTop[1],
@@ -35,7 +38,8 @@ function getConfig() {
         minLevel: config.minLevel,
         maxLevel: config.maxLevel,
         style: config.style,
-        path: config.path
+        path: config.path,
+        threads: config.threads
     };
 }
 
