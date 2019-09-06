@@ -1,6 +1,6 @@
 # BaiduMapDownload
 
-##### Nodejs 百度地图瓦片下载器，兼容windows，mac，linux，速度飞快，基本可占满宽带。
+##### Nodejs 百度地图瓦片下载器，支持不同风格的瓦片下载，兼容windows，mac，linux，速度飞快，基本可占满宽带。
 
 1.执行命令 `npm i` 安装依赖。
 

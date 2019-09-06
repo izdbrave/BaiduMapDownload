@@ -2,7 +2,7 @@
  * @ Author: izdbrave
  * @ Create Time: 2019-08-01 09:12:21
  * @ Modified by: izdbrave
- * @ Modified time: 2019-09-06 19:58:54
+ * @ Modified time: 2019-09-06 20:08:54
  * @ Description: 下载瓦片
  */
 
@@ -64,7 +64,6 @@ function downloadTask(src, callback) {
                 buffer = Buffer.concat([buffer, chunk]);
             }
             // stream.write(chunk);
-            // stream.cork(chunk);
         });
         res.on('end', function() {
             stream.write(buffer);
