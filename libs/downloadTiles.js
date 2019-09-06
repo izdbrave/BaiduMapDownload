@@ -2,7 +2,7 @@
  * @ Author: izdbrave
  * @ Create Time: 2019-08-01 09:12:21
  * @ Modified by: izdbrave
- * @ Modified time: 2019-09-06 19:48:25
+ * @ Modified time: 2019-09-06 19:58:54
  * @ Description: 下载瓦片
  */
 
@@ -56,11 +56,18 @@ function downloadTask(src, callback) {
         downCount++;
     });
     http.get(src, function(res) {
+        let buffer = null;
         res.on('data', function(chunk) {
-            stream.write(chunk);
+            if (!buffer) {
+                buffer = Buffer.from(chunk);
+            } else {
+                buffer = Buffer.concat([buffer, chunk]);
+            }
+            // stream.write(chunk);
             // stream.cork(chunk);
         });
         res.on('end', function() {
+            stream.write(buffer);
             stream.end();
         });
     }).on('error', e => {
