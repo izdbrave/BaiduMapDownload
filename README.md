@@ -25,8 +25,8 @@
 ```ini
 threads = 1000
 path = ./tiles
-minLevel = 1
-maxLevel = 17
+minLevel = 3
+maxLevel = 15
 leftTop = 116.22952831687087,37.54514680399567
 rightBottom = 117.9797464385945,35.99644032407451
 style = normal
