@@ -20,7 +20,7 @@
 >
 > style：地图风格，可选值有常规地图样式(normal)、清新蓝风格(light)、黑夜风格(dark)、自然绿风格(grassgreen)、午夜蓝风格(midnight)、浪漫粉风格(pink)、清新蓝绿风格(bluish)、高端灰风格(grayscale)
 >
-> 边界信息和地图风格可通过[http://map.codezd.com]()获取
+> 边界信息和地图风格可通过[map.codezd.com](map.codezd.com)获取
 
 ```ini
 threads = 1000
