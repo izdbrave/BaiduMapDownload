@@ -2,7 +2,7 @@
  * @ Author: izdbrave
  * @ Create Time: 2019-08-01 09:12:21
  * @ Modified by: izdbrave
- * @ Modified time: 2019-09-06 20:08:54
+ * @ Modified time: 2019-09-09 13:43:38
  * @ Description: 下载瓦片
  */
 
@@ -18,6 +18,7 @@ const getConfig = require('./getConfig');
 
 let totalCount = 0; //瓦片总数
 let downCount = 0; //已下载总数
+let downSize = 0; //已下载大小
 let errorCount = 0; //出错总数
 let beginTime = null; //开始时间
 let timer = null; //计时器
@@ -37,6 +38,22 @@ function calcTime(milliseconds) {
         .padStart(2, '0');
     return `${hours}:${minutes}:${seconds}`;
 }
+/**
+ * 计算下载网速
+ */
+function calcNetSpeed(size) {
+    let speed = '';
+    if (size < 1024) {
+        speed = size + ' B';
+    } else if (size < Math.pow(1024, 2)) {
+        speed = Math.round(size / 1024) + ' KB';
+    } else if (size < Math.pow(1024, 3)) {
+        speed = Math.round((size / Math.pow(1024, 2)) * 100) / 100 + ' MB';
+    } else {
+        speed = Math.round((size / Math.pow(1024, 3)) * 100) / 100 + ' GB';
+    }
+    return speed + '/s';
+}
 
 /**
  * 启动下载进程
@@ -55,21 +72,7 @@ function downloadTask(src, callback) {
     stream.on('finish', () => {
         downCount++;
     });
-    http.get(src, function(res) {
-        let buffer = null;
-        res.on('data', function(chunk) {
-            if (!buffer) {
-                buffer = Buffer.from(chunk);
-            } else {
-                buffer = Buffer.concat([buffer, chunk]);
-            }
-            // stream.write(chunk);
-        });
-        res.on('end', function() {
-            stream.write(buffer);
-            stream.end();
-        });
-    }).on('error', e => {
+    let errorCallback=function(){
         if (typeof errorTilesCount[src] == 'undefined') {
             errorTilesCount[src] = 0;
         }
@@ -82,6 +85,24 @@ function downloadTask(src, callback) {
         } else {
             downloadTask(src, callback);
         }
+    }
+    http.get(src, function(res) {
+        let buffer = null;
+        res.on('data', function(chunk) {
+            if (!buffer) {
+                buffer = Buffer.from(chunk);
+            } else {
+                buffer = Buffer.concat([buffer, chunk]);
+            }
+            // stream.write(chunk);
+        });
+        res.on('end', function() {
+            downSize += Buffer.byteLength(buffer);
+            stream.write(buffer);
+            stream.end();
+        });
+    }).on('error', e => {
+        errorCallback();
     });
 }
 /**
@@ -107,15 +128,16 @@ function downloadCallback(resolve) {
 function showProgressInfo() {
     let splitTime = 1;
     let preCount = 0;
-
+    let preSize = 0;
     timer = setInterval(() => {
         let speed = downCount - preCount;
         console.info(
-            `${moment().format('HH:mm:ss')} 速度 ${speed.toString().yellow} 张/秒，已完成 ${(Math.floor(((downCount + errorCount) / totalCount) * 10000) / 100 + '%').toString().yellow}，剩余 ${
-                (totalCount - downCount - errorCount).toString().yellow
-            } 张，预计还需 ${(speed > 0 ? calcTime(((totalCount - errorCount - downCount) / speed) * 1000) : '--').toString().yellow}`
+            `${moment().format('HH:mm:ss')} 速度 ${speed.toString().yellow} 张/秒 ${calcNetSpeed(downSize - preSize).toString().yellow}，已完成 ${
+                (Math.floor(((downCount + errorCount) / totalCount) * 10000) / 100 + '%').toString().yellow
+            }，剩余 ${(totalCount - downCount - errorCount).toString().yellow} 张，预计还需 ${(speed > 0 ? calcTime(((totalCount - errorCount - downCount) / speed) * 1000) : '--').toString().yellow}`
         );
         preCount = downCount;
+        preSize = downSize;
     }, splitTime * 1000);
 }
 
@@ -131,7 +153,6 @@ function downloadTiles(urlList) {
         beginTime = new Date();
         console.info(`开始下载，共有瓦片 ${totalCount.toString().yellow} 张`);
         let bagpipe = new Bagpipe(config.threads, {});
-
         urlList.forEach(src => {
             bagpipe.push(downloadTask, src, function() {
                 downloadCallback(resolve);
