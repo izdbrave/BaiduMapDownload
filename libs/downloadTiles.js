@@ -2,7 +2,7 @@
  * @ Author: izdbrave
  * @ Create Time: 2019-08-01 09:12:21
  * @ Modified by: izdbrave
- * @ Modified time: 2019-09-09 13:43:38
+ * @ Modified time: 2019-09-12 15:58:30
  * @ Description: 下载瓦片
  */
 
@@ -25,6 +25,7 @@ let timer = null; //计时器
 let config = getConfig(); //基本配置
 let errLogPath = './err.log'; //错误日志
 let errorTilesCount = {}; //失败次数记录
+let httpOpiton = { timeout: Math.max(config.threads / 1000, 1) * 30000 }; //请求配置
 /**
  * 计算时间
  */
@@ -59,6 +60,36 @@ function calcNetSpeed(size) {
  * 启动下载进程
  */
 function downloadTask(src, callback) {
+    let isError = false;
+    let req = http
+        .get(src, httpOpiton, function(res) {
+            let buffer = null;
+            res.on('data', function(chunk) {
+                if (!buffer) {
+                    buffer = Buffer.from(chunk);
+                } else {
+                    buffer = Buffer.concat([buffer, chunk]);
+                }
+            }).on('end', function() {
+                if (res.complete) {
+                    successCallback(src, buffer, callback);
+                } else if (!isError) {
+                    errorCallback(src, callback);
+                }
+            });
+        })
+        .on('error', e => {
+            isError = true;
+            errorCallback(src, callback);
+        })
+        .on('timeout', () => {
+            req.abort();
+        });
+}
+/**
+ * 下载成功回调
+ */
+function successCallback(src, buffer, callback) {
     let queryParam = url.parse(src, true).query;
     let dir = path.join(config.path, queryParam.z, queryParam.x);
     let fileName = queryParam.y + '.png';
@@ -66,44 +97,30 @@ function downloadTask(src, callback) {
         fs.mkdirSync(dir, { recursive: true });
     }
     let stream = fs.createWriteStream(path.join(dir, fileName));
+    stream.write(buffer);
+    stream.end();
     stream.on('close', () => {
+        downCount++;
+        downSize += Buffer.byteLength(buffer);
         callback();
     });
-    stream.on('finish', () => {
-        downCount++;
-    });
-    let errorCallback=function(){
-        if (typeof errorTilesCount[src] == 'undefined') {
-            errorTilesCount[src] = 0;
-        }
-        errorTilesCount[src]++;
-        if (errorTilesCount[src] > 100) {
-            console.error((src + '下载失败').red);
-            errorCount++;
-            fs.writeFileSync(errLogPath, src + '\r\n', { flag: 'a' }, function(err) {});
-            stream.destroy();
-        } else {
-            downloadTask(src, callback);
-        }
+}
+/**
+ * 下载失败回调
+ */
+function errorCallback(src, callback) {
+    if (typeof errorTilesCount[src] == 'undefined') {
+        errorTilesCount[src] = 0;
     }
-    http.get(src, function(res) {
-        let buffer = null;
-        res.on('data', function(chunk) {
-            if (!buffer) {
-                buffer = Buffer.from(chunk);
-            } else {
-                buffer = Buffer.concat([buffer, chunk]);
-            }
-            // stream.write(chunk);
-        });
-        res.on('end', function() {
-            downSize += Buffer.byteLength(buffer);
-            stream.write(buffer);
-            stream.end();
-        });
-    }).on('error', e => {
-        errorCallback();
-    });
+    errorTilesCount[src]++;
+    if (errorTilesCount[src] > 100) {
+        errorCount++;
+        console.error((src + '下载失败').red);
+        fs.writeFileSync(errLogPath, src + '\r\n', { flag: 'a' }, function(err) {});
+        callback();
+    } else {
+        downloadTask(src, callback);
+    }
 }
 /**
  * 下载回调方法
@@ -114,7 +131,7 @@ function downloadCallback(resolve) {
         clearInterval(timer);
         console.info('-------------------------------------------------------------------------------');
         if (errorCount > 0) {
-            console.info(`下载完成，共下载瓦片 ${(totalCount - errorCount).toString().green} 张,失败 ${errorCount.toString().green} 张，用时 ${calcTime(endTime - beginTime).toString().green}`.bold);
+            console.info(`下载完成，共下载瓦片 ${(totalCount - errorCount).toString().green} 张，失败 ${errorCount.toString().red} 张，用时 ${calcTime(endTime - beginTime).toString().green}`.bold);
             console.info(`失败的瓦片请在err.log中查看`.red);
         } else {
             console.info(`下载完成，共下载瓦片 ${totalCount.toString().green} 张，用时 ${calcTime(endTime - beginTime).toString().green}`.bold);
@@ -134,7 +151,9 @@ function showProgressInfo() {
         console.info(
             `${moment().format('HH:mm:ss')} 速度 ${speed.toString().yellow} 张/秒 ${calcNetSpeed(downSize - preSize).toString().yellow}，已完成 ${
                 (Math.floor(((downCount + errorCount) / totalCount) * 10000) / 100 + '%').toString().yellow
-            }，剩余 ${(totalCount - downCount - errorCount).toString().yellow} 张，预计还需 ${(speed > 0 ? calcTime(((totalCount - errorCount - downCount) / speed) * 1000) : '--').toString().yellow}`
+            }，剩余 ${(totalCount - downCount - errorCount).toString().yellow} 张，${errorCount > 0 ? '失败 ' + errorCount.toString().red + ' 张，' : ''}预计还需 ${
+                (speed > 0 ? calcTime(((totalCount - errorCount - downCount) / speed) * 1000) : '--').toString().yellow
+            }`
         );
         preCount = downCount;
         preSize = downSize;
