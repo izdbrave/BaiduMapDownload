@@ -2,19 +2,18 @@
  * @ Author: izdbrave
  * @ Create Time: 2019-09-03 11:42:57
  * @ Modified by: izdbrave
- * @ Modified time: 2020-03-26 18:10:21
+ * @ Modified time: 2020-03-26 18:30:45
  * @ Description: 读取配置文件
  */
 
 const fs = require('fs');
 const path = require('path');
 const ini = require('ini');
-
 /**
  * 读取配置文件
  */
 function getConfig() {
-    let configPath = path.join(__dirname, '../config.ini');
+    let configPath = path.join(process.cwd(), 'config.ini');
     if (!fs.existsSync(configPath)) {
         console.error('找不到配置文件，请在程序目录下放置config.ini配置文件'.red);
         process.exit();
