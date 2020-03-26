@@ -2,7 +2,7 @@
  * @ Author: izdbrave
  * @ Create Time: 2019-08-01 09:12:21
  * @ Modified by: izdbrave
- * @ Modified time: 2020-03-26 17:07:54
+ * @ Modified time: 2020-03-26 18:00:15
  * @ Description: 下载瓦片
  */
 
@@ -106,7 +106,7 @@ function downloadTask(tile, callback) {
  */
 function successCallback(tile, buffer, callback) {
     let dir = path.join(config.path, tile[2].toString(), tile[0].toString());
-    let fileName = tile[1] + '.png';
+    let fileName = `${tile[1]}.${config.ext || 'png'}`;
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
     }

@@ -2,7 +2,7 @@
  * @ Author: izdbrave
  * @ Create Time: 2019-07-31 16:29:07
  * @ Modified by: izdbrave
- * @ Modified time: 2020-03-26 17:08:45
+ * @ Modified time: 2020-03-26 18:04:13
  * @ Description:百度地图瓦片下载
  */
 require('colors');
