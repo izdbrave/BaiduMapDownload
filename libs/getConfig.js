@@ -2,7 +2,7 @@
  * @ Author: izdbrave
  * @ Create Time: 2019-09-03 11:42:57
  * @ Modified by: izdbrave
- * @ Modified time: 2020-03-26 16:00:20
+ * @ Modified time: 2020-03-26 18:10:21
  * @ Description: 读取配置文件
  */
 
@@ -43,6 +43,8 @@ function getConfig() {
         minLevel: config.minLevel,
         maxLevel: config.maxLevel,
         style: config.style,
+        customid: config.customid,
+        ext: config.ext,
         path: config.path,
         threads: config.threads
     };
