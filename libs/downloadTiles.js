@@ -2,12 +2,12 @@
  * @ Author: izdbrave
  * @ Create Time: 2019-08-01 09:12:21
  * @ Modified by: izdbrave
- * @ Modified time: 2019-09-12 15:58:30
+ * @ Modified time: 2020-03-26 14:13:54
  * @ Description: 下载瓦片
  */
 
 const path = require('path');
-const url = require('url');
+
 const Bagpipe = require('bagpipe');
 const moment = require('moment');
 const colors = require('colors');
@@ -25,7 +25,8 @@ let timer = null; //计时器
 let config = getConfig(); //基本配置
 let errLogPath = './err.log'; //错误日志
 let errorTilesCount = {}; //失败次数记录
-let httpOpiton = { timeout: Math.max(config.threads / 1000, 1) * 30000 }; //请求配置
+let httpOpiton = { timeout: 2 * 60 * 1000 }; //请求配置
+
 /**
  * 计算时间
  */
@@ -59,28 +60,43 @@ function calcNetSpeed(size) {
 /**
  * 启动下载进程
  */
-function downloadTask(src, callback) {
+function downloadTask(tile, callback) {
     let isError = false;
+    let isAborted = false;
+    let [x, y, z] = tile;
+    let src = `http://api0.map.bdimg.com/customimage/tile?&qt=tile&x=${x}&y=${y}&z=${z}&customid=${config.customid || ''}&styles=${config.style ? encodeURIComponent(config.style) : ''}`;
     let req = http
         .get(src, httpOpiton, function(res) {
             let buffer = null;
-            res.on('data', function(chunk) {
+            let contentLength = Number(res.headers['content-length']);
+            if (res.statusCode !== 200) {
+                errorCallback(tile, src, callback);
+                return;
+            }
+            res.on('data', chunk => {
                 if (!buffer) {
                     buffer = Buffer.from(chunk);
                 } else {
                     buffer = Buffer.concat([buffer, chunk]);
                 }
-            }).on('end', function() {
-                if (res.complete) {
-                    successCallback(src, buffer, callback);
-                } else if (!isError) {
-                    errorCallback(src, callback);
-                }
-            });
+            })
+                .on('end', () => {
+                    if (!isError && !isAborted) {
+                        if (buffer && buffer.length === contentLength && res.complete) {
+                            successCallback(tile, buffer, callback);
+                        } else {
+                            errorCallback(tile, src, callback);
+                        }
+                    }
+                })
+                .on('aborted', err => {
+                    isAborted = true;
+                    errorCallback(tile, src, callback);
+                });
         })
         .on('error', e => {
             isError = true;
-            errorCallback(src, callback);
+            errorCallback(tile, src, callback);
         })
         .on('timeout', () => {
             req.abort();
@@ -89,10 +105,9 @@ function downloadTask(src, callback) {
 /**
  * 下载成功回调
  */
-function successCallback(src, buffer, callback) {
-    let queryParam = url.parse(src, true).query;
-    let dir = path.join(config.path, queryParam.z, queryParam.x);
-    let fileName = queryParam.y + '.png';
+function successCallback(tile, buffer, callback) {
+    let dir = path.join(config.path, tile[2].toString(), tile[0].toString());
+    let fileName = tile[1] + '.png';
     if (!fs.existsSync(dir)) {
         fs.mkdirSync(dir, { recursive: true });
     }
@@ -108,18 +123,19 @@ function successCallback(src, buffer, callback) {
 /**
  * 下载失败回调
  */
-function errorCallback(src, callback) {
-    if (typeof errorTilesCount[src] == 'undefined') {
-        errorTilesCount[src] = 0;
+function errorCallback(tile, src, callback) {
+    let key = `x${tile[0]}y${tile[1]}z${tile[2]}`;
+    if (errorTilesCount[key] === undefined) {
+        errorTilesCount[key] = 0;
     }
-    errorTilesCount[src]++;
-    if (errorTilesCount[src] > 100) {
+    errorTilesCount[key]++;
+    if (errorTilesCount[key] >= 1000) {
         errorCount++;
-        console.error((src + '下载失败').red);
+        console.error((key + '下载失败').red);
         fs.writeFileSync(errLogPath, src + '\r\n', { flag: 'a' }, function(err) {});
         callback();
     } else {
-        downloadTask(src, callback);
+        downloadTask(tile, callback);
     }
 }
 /**
@@ -163,17 +179,18 @@ function showProgressInfo() {
 /**
  * 下载瓦片
  */
-function downloadTiles(urlList) {
+function downloadTiles(tileList) {
     if (fs.existsSync(errLogPath)) {
         fs.unlinkSync(errLogPath);
     }
+
     return new Promise((resolve, reject) => {
-        totalCount = urlList.length;
+        totalCount = tileList.length;
         beginTime = new Date();
         console.info(`开始下载，共有瓦片 ${totalCount.toString().yellow} 张`);
         let bagpipe = new Bagpipe(config.threads, {});
-        urlList.forEach(src => {
-            bagpipe.push(downloadTask, src, function() {
+        tileList.forEach(tile => {
+            bagpipe.push(downloadTask, tile, function() {
                 downloadCallback(resolve);
             });
         });

@@ -2,7 +2,7 @@
  * @ Author: izdbrave
  * @ Create Time: 2019-08-01 09:12:21
  * @ Modified by: izdbrave
- * @ Modified time: 2019-09-04 12:14:38
+ * @ Modified time: 2020-03-26 09:25:39
  * @ Description: 获取瓦片列表
  */
 
@@ -28,8 +28,7 @@ function getTileList() {
     for (let z = config.minLevel; z <= all.length - 1; z++) {
         for (let x = all[z].x[0]; x <= all[z].x[1]; x++) {
             for (let y = all[z].y[0]; y <= all[z].y[1]; y++) {
-                let url = `http://api0.map.bdimg.com/customimage/tile?x=${x}&y=${y}&z=${z}&customid=${config.style}`;
-                tileList.push(url);
+                tileList.push([x, y, z]);
             }
         }
     }
