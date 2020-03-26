@@ -2,7 +2,7 @@
  * @ Author: izdbrave
  * @ Create Time: 2019-09-03 11:42:57
  * @ Modified by: izdbrave
- * @ Modified time: 2019-09-06 18:10:15
+ * @ Modified time: 2020-03-26 16:00:20
  * @ Description: 读取配置文件
  */
 
@@ -14,8 +14,13 @@ const ini = require('ini');
  * 读取配置文件
  */
 function getConfig() {
+    let configPath = path.join(__dirname, '../config.ini');
+    if (!fs.existsSync(configPath)) {
+        console.error('找不到配置文件，请在程序目录下放置config.ini配置文件'.red);
+        process.exit();
+    }
     let config = fs
-        .readFileSync(path.join(__dirname, '../config.ini'))
+        .readFileSync(configPath)
         .toString()
         .replace(/\\+/g, '\\\\');
     config = ini.parse(config);

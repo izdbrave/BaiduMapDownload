@@ -2,7 +2,7 @@
  * @ Author: izdbrave
  * @ Create Time: 2019-08-01 09:12:21
  * @ Modified by: izdbrave
- * @ Modified time: 2020-03-26 14:13:54
+ * @ Modified time: 2020-03-26 17:07:54
  * @ Description: 下载瓦片
  */
 
@@ -10,7 +10,6 @@ const path = require('path');
 
 const Bagpipe = require('bagpipe');
 const moment = require('moment');
-const colors = require('colors');
 const fs = require('fs');
 const http = require('http');
 
