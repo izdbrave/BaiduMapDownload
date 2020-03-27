@@ -128,7 +128,7 @@ function errorCallback(tile, src, callback) {
         errorTilesCount[key] = 0;
     }
     errorTilesCount[key]++;
-    if (errorTilesCount[key] >= 1000) {
+    if (errorTilesCount[key] >= 10000) {
         errorCount++;
         console.error((key + '下载失败').red);
         fs.writeFileSync(errLogPath, src + '\r\n', { flag: 'a' }, function(err) {});
