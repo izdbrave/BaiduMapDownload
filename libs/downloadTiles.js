@@ -2,16 +2,21 @@
  * @ Author: izdbrave
  * @ Create Time: 2019-08-01 09:12:21
  * @ Modified by: izdbrave
- * @ Modified time: 2020-03-27 14:04:34
+ * @ Modified time: 2020-04-08 13:44:02
  * @ Description: 下载瓦片
  */
 
 const path = require('path');
 
-const Bagpipe = require('bagpipe');
 const moment = require('moment');
 const fs = require('fs');
 const http = require('http');
+
+const TileLnglatTransform = require('tile-lnglat-transform'); //用于经纬度转换为瓦片坐标
+const TileLnglatTransformBaidu = TileLnglatTransform.TileLnglatTransformBaidu;
+
+const events = require('events');
+const eventEmitter = new events.EventEmitter();
 
 const getConfig = require('./getConfig');
 
@@ -24,7 +29,17 @@ let timer = null; //计时器
 let config = getConfig(); //基本配置
 let errLogPath = './err.log'; //错误日志
 let errorTilesCount = {}; //失败次数记录
-let httpOpiton = { timeout: 2 * 60 * 1000 }; //请求配置
+let httpOpiton = {
+    timeout: 30 * 1000,
+}; //请求配置
+
+let tileZ = config.minLevel; //瓦片级别,瓦片Z
+let p1 = TileLnglatTransformBaidu.lnglatToTile(config.x1, config.y1, tileZ); //左上角
+let p2 = TileLnglatTransformBaidu.lnglatToTile(config.x2, config.y2, tileZ); //右下角
+let tileX = p1.tileX; //瓦片X
+let tileY = p2.tileY - 1; //瓦片Y
+let taskList = new Set(); //任务队列
+let taskCount = 0; //已添加任务数量
 
 /**
  * 计算时间
@@ -59,20 +74,25 @@ function calcNetSpeed(size) {
 /**
  * 启动下载进程
  */
-function downloadTask(tile, callback) {
+function download(tile) {
     let isError = false;
-    let isAborted = false;
     let [x, y, z] = tile;
     let src = `http://api0.map.bdimg.com/customimage/tile?&qt=tile&x=${x}&y=${y}&z=${z}&customid=${config.customid || ''}&styles=${config.style ? encodeURIComponent(config.style) : ''}`;
+    let errorHandler = () => {
+        if (!isError) {
+            isError = true;
+            errorCallback(tile, src);
+        }
+    };
     let req = http
-        .get(src, httpOpiton, function(res) {
+        .get(src, httpOpiton, (res) => {
             let buffer = null;
             let contentLength = Number(res.headers['content-length']);
-            if (res.statusCode !== 200) {
-                errorCallback(tile, src, callback);
+            if (res.statusCode !== 200 || isNaN(contentLength)) {
+                errorHandler();
                 return;
             }
-            res.on('data', chunk => {
+            res.on('data', (chunk) => {
                 if (!buffer) {
                     buffer = Buffer.from(chunk);
                 } else {
@@ -80,22 +100,20 @@ function downloadTask(tile, callback) {
                 }
             })
                 .on('end', () => {
-                    if (!isError && !isAborted) {
+                    if (!isError) {
                         if (buffer && buffer.length === contentLength && res.complete) {
-                            successCallback(tile, buffer, callback);
+                            successCallback(tile, buffer);
                         } else {
-                            errorCallback(tile, src, callback);
+                            errorHandler();
                         }
                     }
                 })
-                .on('aborted', err => {
-                    isAborted = true;
-                    errorCallback(tile, src, callback);
+                .on('aborted', (err) => {
+                    errorHandler();
                 });
         })
-        .on('error', e => {
-            isError = true;
-            errorCallback(tile, src, callback);
+        .on('error', (e) => {
+            errorHandler();
         })
         .on('timeout', () => {
             req.abort();
@@ -104,7 +122,7 @@ function downloadTask(tile, callback) {
 /**
  * 下载成功回调
  */
-function successCallback(tile, buffer, callback) {
+function successCallback(tile, buffer, bb) {
     let dir = path.join(config.path, tile[2].toString(), tile[0].toString());
     let fileName = `${tile[1]}.${config.ext || 'png'}`;
     if (!fs.existsSync(dir)) {
@@ -116,31 +134,33 @@ function successCallback(tile, buffer, callback) {
     stream.on('close', () => {
         downCount++;
         downSize += Buffer.byteLength(buffer);
-        callback();
+        eventEmitter.emit('singleTileComplete', tile);
     });
 }
 /**
  * 下载失败回调
  */
-function errorCallback(tile, src, callback) {
+function errorCallback(tile, src, k, bb) {
     let key = `x${tile[0]}y${tile[1]}z${tile[2]}`;
     if (errorTilesCount[key] === undefined) {
         errorTilesCount[key] = 0;
     }
     errorTilesCount[key]++;
-    if (errorTilesCount[key] >= 10000) {
+    //失败重试1000万次
+    if (errorTilesCount[key] === 10000000) {
+        delete errorTilesCount[key];
         errorCount++;
         console.error((key + '下载失败').red);
-        fs.writeFileSync(errLogPath, src + '\r\n', { flag: 'a' }, function(err) {});
-        callback();
+        fs.writeFileSync(errLogPath, src + '\r\n', { flag: 'a' }, function (err) {});
+        eventEmitter.emit('singleTileComplete', tile);
     } else {
-        downloadTask(tile, callback);
+        download(tile);
     }
 }
 /**
  * 下载回调方法
  */
-function downloadCallback(resolve) {
+function downloadComplete() {
     if (totalCount - errorCount - downCount <= 0) {
         let endTime = new Date();
         clearInterval(timer);
@@ -151,7 +171,6 @@ function downloadCallback(resolve) {
         } else {
             console.info(`下载完成，共下载瓦片 ${totalCount.toString().green} 张，用时 ${calcTime(endTime - beginTime).toString().green}`.bold);
         }
-        resolve();
     }
 }
 /**
@@ -178,23 +197,66 @@ function showProgressInfo() {
 /**
  * 下载瓦片
  */
-function downloadTiles(tileList) {
+function downloadTiles() {
     if (fs.existsSync(errLogPath)) {
         fs.unlinkSync(errLogPath);
     }
-
     return new Promise((resolve, reject) => {
-        totalCount = tileList.length;
         beginTime = new Date();
+        totalCount = calcTileCount();
         console.info(`开始下载，共有瓦片 ${totalCount.toString().yellow} 张`);
-        let bagpipe = new Bagpipe(config.threads, {});
-        tileList.forEach(tile => {
-            bagpipe.push(downloadTask, tile, function() {
-                downloadCallback(resolve);
-            });
+        eventEmitter.on('singleTileComplete', (tile) => {
+            taskList.delete(`x${tile[0]}y${tile[1]}z${tile[2]}`);
+            if (taskList.size === 0 && taskCount === totalCount) {
+                downloadComplete();
+                resolve();
+            } else if (taskCount < totalCount) {
+                addTask();
+            }
         });
+        for (let i = 0; i < Math.min(config.threads, totalCount); i++) {
+            addTask();
+        }
         showProgressInfo();
     });
 }
 
+/**
+ * 添加任务
+ */
+function addTask() {
+    tileY++;
+    if (tileY > p1.tileY) {
+        tileY = p2.tileY;
+        tileX++;
+        if (tileX > p2.tileX) {
+            tileZ++;
+            if (tileZ <= config.maxLevel) {
+                p1 = TileLnglatTransformBaidu.lnglatToTile(config.x1, config.y1, tileZ);
+                p2 = TileLnglatTransformBaidu.lnglatToTile(config.x2, config.y2, tileZ);
+
+                tileY = p2.tileY;
+                tileX = p1.tileX;
+            }
+        }
+    }
+    if (tileZ <= config.maxLevel) {
+        let task = [tileX, tileY, tileZ];
+        taskList.add(`x${tileX}y${tileY}z${tileZ}`);
+        download(task);
+        taskCount++;
+    }
+}
+/**
+ * 计算瓦片数量
+ */
+function calcTileCount() {
+    let count = 0;
+    for (i = config.minLevel; i <= config.maxLevel; i++) {
+        let p1 = TileLnglatTransformBaidu.lnglatToTile(config.x1, config.y1, i);
+        let p2 = TileLnglatTransformBaidu.lnglatToTile(config.x2, config.y2, i);
+        count += (Math.abs(p2.tileX - p1.tileX) + 1) * (Math.abs(p2.tileY - p1.tileY) + 1);
+    }
+    return count;
+}
 module.exports = downloadTiles;
