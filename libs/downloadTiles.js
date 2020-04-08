@@ -2,7 +2,7 @@
  * @ Author: izdbrave
  * @ Create Time: 2019-08-01 09:12:21
  * @ Modified by: izdbrave
- * @ Modified time: 2020-04-08 13:44:02
+ * @ Modified time: 2020-04-08 13:54:35
  * @ Description: 下载瓦片
  */
 
@@ -147,7 +147,7 @@ function errorCallback(tile, src, k, bb) {
     }
     errorTilesCount[key]++;
     //失败重试1000万次
-    if (errorTilesCount[key] === 10000000) {
+    if (errorTilesCount[key] > 10000000) {
         delete errorTilesCount[key];
         errorCount++;
         console.error((key + '下载失败').red);
